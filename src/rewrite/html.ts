@@ -60,6 +60,10 @@ export function rewriteSrcset(value: string, baseUrl: string, prefix = "/proxy")
 export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy"): string {
   const $ = cheerio.load(html);
 
+  // A target-provided base URL would make our root-relative /proxy URLs resolve
+  // on the target host. Remove it before rewriting game and page resources.
+  $("base").remove();
+
   for (const [tag, attr] of URL_ATTRS) {
     $(tag).each((_i, el) => {
       const current = $(el).attr(attr);

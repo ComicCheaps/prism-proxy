@@ -17,6 +17,12 @@ describe("rewriteHtml", () => {
     expect(decodeTarget(firstToken(out))).toBe("https://example.com/about");
   });
 
+  it("removes target base URLs so Prism paths keep the proxy origin", () => {
+    const out = rewriteHtml(`<base href="https://example.com/"><script src="/game.js"></script>`, BASE);
+    expect(out).not.toContain("<base");
+    expect(decodeTarget(firstToken(out))).toBe("https://example.com/game.js");
+  });
+
   it("keeps rewritten new-tab links in the current Prism tab", () => {
     const out = rewriteHtml(`<a href="https://coolmathgames.com" target="_blank">Games</a>`, BASE);
     expect(out).not.toContain("target=\"_blank\"");
