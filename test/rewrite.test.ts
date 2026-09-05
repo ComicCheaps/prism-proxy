@@ -29,10 +29,15 @@ describe("rewriteHtml", () => {
 
   it("rewrites srcset candidates and preserves descriptors", () => {
     const out = rewriteHtml(`<img srcset="/a.png 1x, /b.png 2x">`, BASE);
-    // 2 srcset candidates, plus none from the injected <base> (it isn't rewritten).
-    expect(out.match(/\/proxy\//g)).toHaveLength(2);
-    expect(out).toContain("1x");
-    expect(out).toContain("2x");
+    const srcset = out.match(/srcset="([^"]+)"/)?.[1] ?? "";
+    expect(srcset.match(/\/proxy\//g)).toHaveLength(2);
+    expect(srcset).toContain("1x");
+    expect(srcset).toContain("2x");
+  });
+
+  it("sends forms without an action to the proxied target page", () => {
+    const out = rewriteHtml(`<form method="get"><input name="search"></form>`, BASE);
+    expect(decodeTarget(firstToken(out))).toBe(BASE);
   });
 
   it("rewrites meta refresh URLs", () => {

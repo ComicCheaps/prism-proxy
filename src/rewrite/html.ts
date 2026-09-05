@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { encodeTarget } from "../codec.js";
+import { clientShim } from "./client-shim.js";
 
 const URL_ATTRS: ReadonlyArray<readonly [string, string]> = [
   ["a", "href"],
@@ -59,18 +60,20 @@ export function rewriteSrcset(value: string, baseUrl: string, prefix = "/proxy/"
 export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy/"): string {
   const $ = cheerio.load(html);
 
-  // Pin every relative resolution (links, assets, forms with no action) to the
-  // true origin so the browser never resolves against our /proxy/<token> path.
-  if ($("head").length && !$("base").length) {
-    $("head").prepend(`<base href="${baseUrl}">`);
-  }
-
   for (const [tag, attr] of URL_ATTRS) {
     $(tag).each((_i, el) => {
       const current = $(el).attr(attr);
       if (current) $(el).attr(attr, proxifyUrl(current, baseUrl, prefix));
     });
   }
+
+  // Browsers submit a form without an action to the current proxy URL. Send
+  // those forms to the equivalent target URL instead, preserving their method.
+  $("form:not([action])").attr("action", `${prefix}${encodeTarget(baseUrl)}`);
+
+  // Must run before the page's own scripts so dynamically created API requests
+  // resolve against the target URL and route back through Prism.
+  if ($("head").length) $("head").prepend(clientShim(baseUrl, prefix));
 
   for (const [tag, attr] of SRCSET_ATTRS) {
     $(tag).each((_i, el) => {

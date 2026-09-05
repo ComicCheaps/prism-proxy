@@ -3,8 +3,9 @@
 An open source web proxy: enter a URL, and the server fetches, rewrites, and
 serves the page so all requests flow through the proxy.
 
-> **Status:** early scaffold (v0.1 MVP in progress). See [PLANNING.md](PLANNING.md)
-> for the architecture and roadmap.
+> **Status:** early development. Static navigation, forms, and common runtime
+> `fetch`/XHR requests are proxied; protected media and login-heavy services are
+> not yet supported. See [PLANNING.md](PLANNING.md) for the architecture and roadmap.
 
 ## Quickstart
 
@@ -36,6 +37,18 @@ docker run -p 3000:3000 prism-proxy
 GitHub hosts this repo — it does **not** host the proxy. GitHub Pages is
 static-only, and a web proxy needs a live backend. Run it on a VPS, Railway,
 Render, Fly.io, or anywhere a Docker container can live.
+
+### Render
+
+The repository includes `render.yaml` for a GitHub-connected Render Web Service:
+
+1. Sign in to [Render](https://render.com/), choose **New +** then **Blueprint**.
+2. Connect `ComicCheaps/prism-proxy` and accept the detected blueprint.
+3. Render will build and deploy the service, then show a public `onrender.com`
+	URL. New commits to `main` deploy automatically.
+
+Render's free tier can spin down idle services. Use a paid plan or VPS for an
+always-on public instance.
 
 ## Contributing
 

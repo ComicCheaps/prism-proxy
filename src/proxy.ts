@@ -6,6 +6,7 @@ import type { ProxyConfig } from "./config.js";
 import { rewriteCss } from "./rewrite/css.js";
 import { rewriteLocation, sanitizeResponseHeaders } from "./rewrite/headers.js";
 import { rewriteHtml } from "./rewrite/html.js";
+import { LANDING_PAGE } from "./landing.js";
 
 // Reuse TCP/TLS connections to origin servers instead of handshaking per asset.
 const upstreamAgent = new Agent({
@@ -14,29 +15,9 @@ const upstreamAgent = new Agent({
   connections: 128,
 });
 
-const LANDING_PAGE = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>prism-proxy</title>
-    <style>
-      body { font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; background: #111827; color: #e5e7eb; }
-      form { display: flex; gap: 0.5rem; width: min(90vw, 560px); }
-      input { flex: 1; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #374151; background: #1f2937; color: inherit; font-size: 1rem; }
-      button { padding: 0.75rem 1.25rem; border-radius: 8px; border: 0; background: #6366f1; color: white; font-size: 1rem; cursor: pointer; }
-    </style>
-  </head>
-  <body>
-    <form action="/go" method="get">
-      <input name="url" type="text" placeholder="https://example.com" required autofocus />
-      <button type="submit">Go</button>
-    </form>
-  </body>
-</html>`;
-
 export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): void {
   app.get("/", (_req, reply) => reply.type("text/html").send(LANDING_PAGE));
+  app.get("/health", (_req, reply) => reply.send({ status: "ok" }));
 
   // Landing-page form target: normalize the user's input and bounce to a token URL.
   app.get("/go", (req, reply) => {
