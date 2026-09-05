@@ -19,7 +19,7 @@ export const EMULATOR_PAGE = `<!doctype html>
       .systems { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; } label { display: grid; gap: 6px; font: 700 12px ui-monospace, monospace; color: #47615e; text-transform: uppercase; letter-spacing: .04em; }
       select, input { width: 100%; padding: 13px; border: 1px solid #b9ceca; border-radius: 0; color: #162a2a; background: #f7fbfa; font: 15px ui-monospace, monospace; }
       button { border: 0; padding: 14px 18px; background: #e65a3f; color: #fffdf8; font: 700 13px ui-monospace, monospace; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; } button:disabled { background: #9da9a6; cursor: not-allowed; }
-      .notice { margin: 0; color: #47615e; font: 13px ui-monospace, monospace; line-height: 1.6; } #game { min-height: 0; margin-top: 34px; } .hidden { display: none; }
+      .notice { margin: 0; color: #47615e; font: 13px ui-monospace, monospace; line-height: 1.6; } .status { display: grid; gap: 7px; border-top: 1px solid #b9ceca; padding-top: 14px; color: #47615e; font: 12px ui-monospace, monospace; } .status strong { color: #162a2a; } .status[data-state="error"] strong { color: #bd3f2b; } .status[data-state="ready"] strong { color: #0d9273; } #game { min-height: 0; margin-top: 34px; } .hidden { display: none; }
       @media (max-width: 650px) { header, main { width: min(100% - 28px,960px); } .systems { grid-template-columns: repeat(2,1fr); } }
     </style>
   </head>
@@ -34,6 +34,7 @@ export const EMULATOR_PAGE = `<!doctype html>
           <label>Game file<input id="rom" type="file" accept=".gba,.gb,.gbc,.bin,.cue,.chd,.iso,.nds" /></label>
         </div>
         <button id="launch" type="button" disabled>Load game</button>
+        <div id="status" class="status" data-state="idle" role="status" aria-live="polite"><strong>Waiting for a game file</strong><span id="status-detail">EmulatorJS runs locally from this Prism deployment.</span></div>
         <p class="notice">Use only homebrew, public-domain, or game files you are legally authorized to use. No game files are included with Prism.</p>
       </section>
       <div id="game" class="hidden"></div>
@@ -43,17 +44,49 @@ export const EMULATOR_PAGE = `<!doctype html>
       const system = document.getElementById('system');
       const launch = document.getElementById('launch');
       const game = document.getElementById('game');
+      const status = document.getElementById('status');
+      const statusTitle = status.querySelector('strong');
+      const statusDetail = document.getElementById('status-detail');
+      const cores = { gba: 'mgba', gb: 'gambatte', psx: 'pcsx_rearmed', nds: 'melonds' };
       let activeGameUrl;
-      rom.addEventListener('change', () => { launch.disabled = !rom.files.length; });
-      launch.addEventListener('click', () => {
+      function setStatus(state, title, detail) { status.dataset.state = state; statusTitle.textContent = title; statusDetail.textContent = detail; }
+      function fail(error) { launch.disabled = false; setStatus('error', 'Emulator stopped', error instanceof Error ? error.message : String(error)); }
+      rom.addEventListener('change', () => {
+        launch.disabled = !rom.files.length;
+        const file = rom.files[0];
+        if (file) setStatus('ready', 'Game file selected', file.name + ' (' + Math.ceil(file.size / 1024) + ' KiB).');
+      });
+      addEventListener('error', event => { if (game.classList.contains('hidden')) return; fail(event.message || 'A browser error interrupted emulation.'); });
+      addEventListener('unhandledrejection', event => { if (!game.classList.contains('hidden')) fail(event.reason || 'An emulator request failed.'); });
+      launch.addEventListener('click', async () => {
         const file = rom.files[0]; if (!file) return;
         launch.disabled = true; game.classList.remove('hidden'); game.replaceChildren();
+        const core = cores[system.value];
+        setStatus('loading', 'Checking local game file', 'Reading ' + file.name + ' before the emulator starts.');
+        try {
+          if (file.size === 0) throw new Error('The selected game file is empty. Choose a valid ' + system.options[system.selectedIndex].text + ' file.');
+          await file.slice(0, 16).arrayBuffer();
+          setStatus('loading', 'Checking emulator core', 'Loading self-hosted ' + core + ' runtime.');
+          const coreResponse = await fetch('/emulatorjs/data/cores/' + core + '-wasm.data', { cache: 'no-store' });
+          if (!coreResponse.ok) throw new Error('The ' + core + ' core could not be loaded (' + coreResponse.status + ').');
+          setStatus('loading', 'Starting EmulatorJS', 'The local game file and ' + core + ' core are ready.');
+        } catch (error) { fail(error); return; }
         window.EJS_player = '#game'; window.EJS_core = system.value;
         window.EJS_gameID = system.value + '-' + file.name + '-' + file.size;
         if (activeGameUrl) URL.revokeObjectURL(activeGameUrl);
         activeGameUrl = URL.createObjectURL(file);
         window.EJS_gameUrl = activeGameUrl; window.EJS_pathtodata = '/emulatorjs/data/';
-        const loader = document.createElement('script'); loader.src = '/emulatorjs/data/loader.js'; document.body.appendChild(loader);
+        const loader = document.createElement('script');
+        loader.src = '/emulatorjs/data/loader.js';
+        loader.onerror = () => fail(new Error('EmulatorJS loader could not be downloaded from this Prism deployment.'));
+        loader.onload = () => {
+          setStatus('loading', 'Emulator interface loaded', 'Starting the ' + system.options[system.selectedIndex].text + ' core.');
+          const observer = new MutationObserver(() => {
+            if (game.querySelector('.ejs_game')) { observer.disconnect(); setStatus('ready', 'Emulator ready', 'Use Start Game in the embedded EmulatorJS controls.'); }
+          });
+          observer.observe(game, { childList: true, subtree: true });
+        };
+        document.body.appendChild(loader);
       });
       addEventListener('beforeunload', () => { if (activeGameUrl) URL.revokeObjectURL(activeGameUrl); });
     </script>

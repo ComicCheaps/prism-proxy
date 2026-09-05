@@ -13,6 +13,10 @@ describe("local emulator", () => {
     expect(EMULATOR_PAGE).toContain("window.EJS_gameID");
     expect(EMULATOR_PAGE).toContain("URL.createObjectURL(file)");
     expect(EMULATOR_PAGE).toContain("addEventListener('beforeunload'");
+    expect(EMULATOR_PAGE).toContain('id="status"');
+    expect(EMULATOR_PAGE).toContain("Checking emulator core");
+    expect(EMULATOR_PAGE).toContain("The selected game file is empty");
+    expect(EMULATOR_PAGE).toContain("Use Start Game in the embedded EmulatorJS controls");
     expect(EMULATOR_PAGE).not.toContain("loader.onload = () => URL.revokeObjectURL");
   });
 
