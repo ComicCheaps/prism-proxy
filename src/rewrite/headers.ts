@@ -59,7 +59,7 @@ export function rewriteLocation(location: string | undefined, base: URL): string
   if (!location) return undefined;
   try {
     const absolute = new URL(location, base);
-    return `/proxy?url=${encodeURIComponent(encodeTarget(absolute.href))}`;
+    return `/proxy?__prism=${encodeURIComponent(encodeTarget(absolute.href))}`;
   } catch {
     return undefined;
   }

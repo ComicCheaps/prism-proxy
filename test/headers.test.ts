@@ -29,8 +29,8 @@ describe("sanitizeResponseHeaders", () => {
 describe("rewriteLocation", () => {
   it("uses a query-based proxy URL for long redirect targets", () => {
     const location = rewriteLocation("/next?" + "a=".repeat(1000), new URL("https://example.com"));
-    const token = new URL(`https://prism.test${location}`).searchParams.get("url");
+    const token = new URL(`https://prism.test${location}`).searchParams.get("__prism");
     expect(token).toBeTruthy();
-    expect(decodeTarget(token as string)).toStartWith("https://example.com/next?");
+    expect(decodeTarget(token as string)).toMatch(/^https:\/\/example\.com\/next\?/);
   });
 });

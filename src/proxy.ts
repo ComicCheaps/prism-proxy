@@ -29,7 +29,7 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
     } catch {
       return reply.code(400).send({ error: "Invalid URL" });
     }
-    return reply.redirect(`/proxy?url=${encodeURIComponent(encodeTarget(normalized))}`);
+    return reply.redirect(`/proxy?__prism=${encodeURIComponent(encodeTarget(normalized))}`);
   });
 
   // Handles both GET and POST so forms (Wikipedia search, login boxes) work.
@@ -37,7 +37,7 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
     method: ["GET", "POST"],
     url: "/proxy",
     handler: async (req, reply) => {
-    const { url: token, ...browserQuery } = req.query as Record<string, string | undefined>;
+    const { __prism: token, ...browserQuery } = req.query as Record<string, string | undefined>;
 
     let target: URL;
     try {

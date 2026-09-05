@@ -38,7 +38,7 @@ export function proxifyUrl(value: string, baseUrl: string, prefix = "/proxy"): s
     ? `${new URL(baseUrl).protocol}${trimmed}`
     : trimmed;
   try {
-    return `${prefix}?url=${encodeURIComponent(encodeTarget(new URL(resolved, baseUrl).href))}`;
+    return `${prefix}?__prism=${encodeURIComponent(encodeTarget(new URL(resolved, baseUrl).href))}`;
   } catch {
     return value;
   }
@@ -69,7 +69,10 @@ export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy"): s
 
   // Browsers submit a form without an action to the current proxy URL. Send
   // those forms to the equivalent target URL instead, preserving their method.
-  $("form:not([action])").attr("action", `${prefix}?url=${encodeURIComponent(encodeTarget(baseUrl))}`);
+  $("form:not([action]), form[action='']").attr(
+    "action",
+    `${prefix}?__prism=${encodeURIComponent(encodeTarget(baseUrl))}`,
+  );
 
   // Must run before the page's own scripts so dynamically created API requests
   // resolve against the target URL and route back through Prism.

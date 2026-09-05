@@ -5,7 +5,7 @@ import { proxifyUrl } from "./html.js";
  * Deliberately regex-based for now — a real CSS parser is on the roadmap
  * once the fixture test suite documents the edge cases.
  */
-export function rewriteCss(css: string, baseUrl: string, prefix = "/proxy/"): string {
+export function rewriteCss(css: string, baseUrl: string, prefix = "/proxy"): string {
   const withUrls = css.replace(
     /url\(\s*(["']?)([^"')]+)\1\s*\)/g,
     (_match, quote: string, raw: string) =>

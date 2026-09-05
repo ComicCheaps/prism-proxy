@@ -6,8 +6,8 @@ import { rewriteHtml } from "../src/rewrite/html.js";
 const BASE = "https://example.com/articles/index.html";
 
 function firstToken(output: string): string {
-  const token = output.match(/\/proxy\?url=([A-Za-z0-9_-]+)/)?.[1];
-  expect(token, "expected a /proxy?url= token in output").toBeDefined();
+  const token = output.match(/\/proxy\?__prism=([A-Za-z0-9_-]+)/)?.[1];
+  expect(token, "expected a /proxy?__prism= token in output").toBeDefined();
   return token as string;
 }
 
@@ -30,13 +30,18 @@ describe("rewriteHtml", () => {
   it("rewrites srcset candidates and preserves descriptors", () => {
     const out = rewriteHtml(`<img srcset="/a.png 1x, /b.png 2x">`, BASE);
     const srcset = out.match(/srcset="([^"]+)"/)?.[1] ?? "";
-    expect(srcset.match(/\/proxy\?url=/g)).toHaveLength(2);
+    expect(srcset.match(/\/proxy\?__prism=/g)).toHaveLength(2);
     expect(srcset).toContain("1x");
     expect(srcset).toContain("2x");
   });
 
   it("sends forms without an action to the proxied target page", () => {
     const out = rewriteHtml(`<form method="get"><input name="search"></form>`, BASE);
+    expect(decodeTarget(firstToken(out))).toBe(BASE);
+  });
+
+  it("sends forms with a blank action to the proxied target page", () => {
+    const out = rewriteHtml(`<form action=""><input name="search"></form>`, BASE);
     expect(decodeTarget(firstToken(out))).toBe(BASE);
   });
 
