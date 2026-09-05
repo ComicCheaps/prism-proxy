@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { Agent, request as upstreamRequest } from "undici";
 import { gunzipSync, inflateSync, brotliDecompressSync } from "node:zlib";
+import { randomUUID } from "node:crypto";
 import { decodeTarget, encodeTarget } from "./codec.js";
+import { SessionCookieJar } from "./cookie-jar.js";
 import type { ProxyConfig } from "./config.js";
 import { rewriteCss } from "./rewrite/css.js";
 import { rewriteLocation, sanitizeResponseHeaders } from "./rewrite/headers.js";
@@ -14,6 +16,7 @@ const upstreamAgent = new Agent({
   keepAliveMaxTimeout: 60_000,
   connections: 128,
 });
+const cookieJar = new SessionCookieJar();
 
 export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): void {
   app.get("/", (_req, reply) => reply.type("text/html").send(LANDING_PAGE));
@@ -37,7 +40,12 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
     method: ["GET", "POST"],
     url: "/proxy",
     handler: async (req, reply) => {
-    const { __prism: token, ...browserQuery } = req.query as Record<string, string | undefined>;
+    const sessionId = readSessionId(req.headers.cookie) ?? randomUUID();
+    reply.header("set-cookie", `prism_sid=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
+    const query = req.query as Record<string, string | string[] | undefined>;
+    const browserQuery = { ...query };
+    delete browserQuery.__prism;
+    const token = findProxyToken(query, req.headers.referer);
 
     let target: URL;
     try {
@@ -56,7 +64,10 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
     // Carry the browser's query string onto the target — forms that submit via
     // GET (and search URLs like ?search=foo) depend on it.
     for (const [key, value] of Object.entries(browserQuery)) {
-      if (value !== undefined) target.searchParams.append(key, value);
+      if (typeof value === "string") target.searchParams.append(key, value);
+      if (Array.isArray(value)) {
+        for (const entry of value) target.searchParams.append(key, entry);
+      }
     }
 
     let upstream;
@@ -75,6 +86,8 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
         referer: target.origin + "/",
       };
       if (req.headers.range) headers.range = req.headers.range;
+      const cookies = cookieJar.getHeader(sessionId, target);
+      if (cookies) headers.cookie = cookies;
       let body: string | undefined;
       if (isPost && contentType.includes("application/x-www-form-urlencoded")) {
         headers["content-type"] = contentType;
@@ -93,6 +106,7 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
       req.log.warn({ err, target: target.href }, "upstream fetch failed");
       return reply.code(502).send({ error: `Could not reach ${target.host}` });
     }
+    cookieJar.store(sessionId, target, upstream.headers["set-cookie"]);
 
     const contentType = String(upstream.headers["content-type"] ?? "");
     const encoding = String(upstream.headers["content-encoding"] ?? "").toLowerCase();
@@ -133,6 +147,30 @@ function decodeBody(buf: ArrayBuffer, encoding: string): string {
   if (encoding === "deflate") return inflateSync(bytes).toString("utf8");
   if (encoding === "br") return brotliDecompressSync(bytes).toString("utf8");
   return bytes.toString("utf8");
+}
+
+/**
+ * Some sites replace a form action after the document is rewritten. If that
+ * form submits to /proxy without our token, the originating proxy URL remains
+ * in Referer and gives us the intended target without trusting form fields.
+ */
+export function findProxyToken(
+  query: Record<string, string | string[] | undefined>,
+  referer: string | undefined,
+): string | undefined {
+  const direct = query.__prism;
+  if (typeof direct === "string") return direct;
+  if (!referer) return undefined;
+  try {
+    return new URL(referer).searchParams.get("__prism") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readSessionId(cookieHeader: string | undefined): string | undefined {
+  const match = cookieHeader?.match(/(?:^|;\s*)prism_sid=([^;]+)/);
+  return match?.[1];
 }
 
 function isBlocked(hostname: string, config: ProxyConfig): boolean {

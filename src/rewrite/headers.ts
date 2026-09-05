@@ -24,7 +24,6 @@ const ALLOWED_RESPONSE_HEADERS = new Set([
   "last-modified",
   "expires",
   "location",
-  "set-cookie",
   "www-authenticate",
   "vary",
   "age",

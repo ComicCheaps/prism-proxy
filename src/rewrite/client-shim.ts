@@ -12,6 +12,7 @@ const prefix="${prefix}";
 const skip=/^(data:|blob:|about:|javascript:|mailto:|tel:|#)/i;
 function token(value){return btoa(unescape(encodeURIComponent(value))).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"")}
 function route(value){if(typeof value!=="string"||skip.test(value)||value.indexOf(prefix)===0)return value;try{return prefix+"?__prism="+encodeURIComponent(token(new URL(value,base).href))}catch{return value}}
+document.addEventListener("submit",function(event){const form=event.target;if(!(form instanceof HTMLFormElement))return;const action=form.getAttribute("action");if(!action){form.action=prefix+"?__prism="+encodeURIComponent(token(base));return}if(action.indexOf(prefix)===0)return;form.action=route(action)},true);
 const nativeFetch=window.fetch.bind(window);
 window.fetch=function(input,init){if(input instanceof Request){return nativeFetch(new Request(route(input.url),input),init)}return nativeFetch(route(input),init)};
 const open=XMLHttpRequest.prototype.open;
