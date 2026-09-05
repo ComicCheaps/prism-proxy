@@ -17,6 +17,12 @@ describe("rewriteHtml", () => {
     expect(decodeTarget(firstToken(out))).toBe("https://example.com/about");
   });
 
+  it("keeps rewritten new-tab links in the current Prism tab", () => {
+    const out = rewriteHtml(`<a href="https://coolmathgames.com" target="_blank">Games</a>`, BASE);
+    expect(out).not.toContain("target=\"_blank\"");
+    expect(decodeTarget(firstToken(out))).toBe("https://coolmathgames.com/");
+  });
+
   it("leaves data:, javascript:, and fragment URLs alone", () => {
     const out = rewriteHtml(
       `<img src="data:image/png;base64,AAAA"><a href="#top">top</a><a href="javascript:void(0)">x</a>`,

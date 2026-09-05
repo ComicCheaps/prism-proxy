@@ -7,6 +7,17 @@ serves the page so all requests flow through the proxy.
 > `fetch`/XHR requests are proxied; protected media and login-heavy services are
 > not yet supported. See [PLANNING.md](PLANNING.md) for the architecture and roadmap.
 
+## Compatibility
+
+Prism is designed for public websites, documentation, blogs, and other sites
+that do not require a browser-origin challenge. It intentionally declines
+Google, YouTube, reCAPTCHA, and related protected domains: their security
+controls require code to execute on the site's own domain and cannot operate
+reliably from a web-rewriting proxy.
+
+Search-result links that specify `target="_blank"` are opened in the current
+Prism tab so navigation remains inside the proxy.
+
 ## Quickstart
 
 ```bash

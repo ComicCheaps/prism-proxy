@@ -11,6 +11,7 @@ import { rewriteLocation, sanitizeResponseHeaders } from "./rewrite/headers.js";
 import { rewriteHtml } from "./rewrite/html.js";
 import { LANDING_PAGE } from "./landing.js";
 import { SERVICE_WORKER } from "./service-worker.js";
+import { isUnsupportedHost, unsupportedPage } from "./unsupported.js";
 
 // Reuse TCP/TLS connections to origin servers instead of handshaking per asset.
 const upstreamAgent = new Agent({
@@ -66,6 +67,9 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
     }
     if (target.protocol !== "http:" && target.protocol !== "https:") {
       return reply.code(400).send({ error: "Only http(s) URLs can be proxied" });
+    }
+    if (isUnsupportedHost(target.hostname)) {
+      return reply.type("text/html").send(unsupportedPage(target.hostname));
     }
     if (isBlocked(target.hostname, config)) {
       return reply.code(403).send({ error: "That host is not allowed" });

@@ -67,6 +67,10 @@ export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy"): s
     });
   }
 
+  // Search engines commonly put results in a new tab. Keep navigation inside
+  // the current Prism tab so users do not accidentally leave the proxy.
+  $("a[target='_blank'], area[target='_blank']").removeAttr("target");
+
   // Browsers submit a form without an action to the current proxy URL. Send
   // those forms to the equivalent target URL instead, preserving their method.
   $("form:not([action]), form[action='']").attr(
