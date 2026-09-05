@@ -29,18 +29,19 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
     } catch {
       return reply.code(400).send({ error: "Invalid URL" });
     }
-    return reply.redirect(`/proxy/${encodeTarget(normalized)}`);
+    return reply.redirect(`/proxy?url=${encodeURIComponent(encodeTarget(normalized))}`);
   });
 
   // Handles both GET and POST so forms (Wikipedia search, login boxes) work.
   app.route({
     method: ["GET", "POST"],
-    url: "/proxy/:token",
+    url: "/proxy",
     handler: async (req, reply) => {
-    const { token } = req.params as { token: string };
+    const { url: token, ...browserQuery } = req.query as Record<string, string | undefined>;
 
     let target: URL;
     try {
+      if (!token) throw new Error("Missing proxy URL");
       target = new URL(decodeTarget(token));
     } catch {
       return reply.code(400).send({ error: "Invalid proxy token" });
@@ -54,10 +55,8 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
 
     // Carry the browser's query string onto the target — forms that submit via
     // GET (and search URLs like ?search=foo) depend on it.
-    const browserQuery = req.url.split("?")[1];
-    if (browserQuery) {
-      const extra = new URLSearchParams(browserQuery);
-      for (const [k, v] of extra) target.searchParams.append(k, v);
+    for (const [key, value] of Object.entries(browserQuery)) {
+      if (value !== undefined) target.searchParams.append(key, value);
     }
 
     let upstream;
@@ -75,6 +74,7 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
         "accept-language": req.headers["accept-language"] ?? "en-US,en;q=0.9",
         referer: target.origin + "/",
       };
+      if (req.headers.range) headers.range = req.headers.range;
       let body: string | undefined;
       if (isPost && contentType.includes("application/x-www-form-urlencoded")) {
         headers["content-type"] = contentType;
@@ -94,17 +94,16 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
       return reply.code(502).send({ error: `Could not reach ${target.host}` });
     }
 
-    const headers = sanitizeResponseHeaders(upstream.headers);
-    const location = rewriteLocation(headers["location"], target);
-    if (location) headers["location"] = location;
-    reply.code(upstream.statusCode).headers(headers);
-
     const contentType = String(upstream.headers["content-type"] ?? "");
     const encoding = String(upstream.headers["content-encoding"] ?? "").toLowerCase();
     const needsRewrite =
       contentType.includes("text/html") || contentType.includes("text/css");
 
     if (needsRewrite) {
+      const headers = sanitizeResponseHeaders(upstream.headers, true);
+      const location = rewriteLocation(headers["location"], target);
+      if (location) headers["location"] = location;
+      reply.code(upstream.statusCode).headers(headers);
       let body: string;
       try {
         body = decodeBody(await upstream.body.arrayBuffer(), encoding);
@@ -119,6 +118,10 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
     }
     // Everything else (images, fonts, media) streams straight through
     // compressed, untouched, with its original content-encoding header.
+    const headers = sanitizeResponseHeaders(upstream.headers);
+    const location = rewriteLocation(headers["location"], target);
+    if (location) headers["location"] = location;
+    reply.code(upstream.statusCode).headers(headers);
     return reply.send(upstream.body);
     },
   });

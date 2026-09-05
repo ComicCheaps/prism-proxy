@@ -29,7 +29,7 @@ const SRCSET_ATTRS: ReadonlyArray<readonly [string, string]> = [
 const SKIP_PREFIXES = ["data:", "javascript:", "mailto:", "tel:", "blob:", "about:"];
 
 /** Resolves `value` against the page's base URL and routes it through the proxy. */
-export function proxifyUrl(value: string, baseUrl: string, prefix = "/proxy/"): string {
+export function proxifyUrl(value: string, baseUrl: string, prefix = "/proxy"): string {
   const trimmed = value.trim();
   if (!trimmed || trimmed.startsWith("#")) return value;
   if (SKIP_PREFIXES.some((p) => trimmed.toLowerCase().startsWith(p))) return value;
@@ -38,14 +38,14 @@ export function proxifyUrl(value: string, baseUrl: string, prefix = "/proxy/"): 
     ? `${new URL(baseUrl).protocol}${trimmed}`
     : trimmed;
   try {
-    return `${prefix}${encodeTarget(new URL(resolved, baseUrl).href)}`;
+    return `${prefix}?url=${encodeURIComponent(encodeTarget(new URL(resolved, baseUrl).href))}`;
   } catch {
     return value;
   }
 }
 
 /** Rewrites every candidate in a `srcset` attribute, preserving descriptors. */
-export function rewriteSrcset(value: string, baseUrl: string, prefix = "/proxy/"): string {
+export function rewriteSrcset(value: string, baseUrl: string, prefix = "/proxy"): string {
   return value
     .split(",")
     .map((candidate) => {
@@ -57,7 +57,7 @@ export function rewriteSrcset(value: string, baseUrl: string, prefix = "/proxy/"
     .join(", ");
 }
 
-export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy/"): string {
+export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy"): string {
   const $ = cheerio.load(html);
 
   for (const [tag, attr] of URL_ATTRS) {
@@ -69,7 +69,7 @@ export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy/"): 
 
   // Browsers submit a form without an action to the current proxy URL. Send
   // those forms to the equivalent target URL instead, preserving their method.
-  $("form:not([action])").attr("action", `${prefix}${encodeTarget(baseUrl)}`);
+  $("form:not([action])").attr("action", `${prefix}?url=${encodeURIComponent(encodeTarget(baseUrl))}`);
 
   // Must run before the page's own scripts so dynamically created API requests
   // resolve against the target URL and route back through Prism.

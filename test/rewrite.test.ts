@@ -6,8 +6,8 @@ import { rewriteHtml } from "../src/rewrite/html.js";
 const BASE = "https://example.com/articles/index.html";
 
 function firstToken(output: string): string {
-  const token = output.match(/\/proxy\/([A-Za-z0-9_-]+)/)?.[1];
-  expect(token, "expected a /proxy/ token in output").toBeDefined();
+  const token = output.match(/\/proxy\?url=([A-Za-z0-9_-]+)/)?.[1];
+  expect(token, "expected a /proxy?url= token in output").toBeDefined();
   return token as string;
 }
 
@@ -30,7 +30,7 @@ describe("rewriteHtml", () => {
   it("rewrites srcset candidates and preserves descriptors", () => {
     const out = rewriteHtml(`<img srcset="/a.png 1x, /b.png 2x">`, BASE);
     const srcset = out.match(/srcset="([^"]+)"/)?.[1] ?? "";
-    expect(srcset.match(/\/proxy\//g)).toHaveLength(2);
+    expect(srcset.match(/\/proxy\?url=/g)).toHaveLength(2);
     expect(srcset).toContain("1x");
     expect(srcset).toContain("2x");
   });
