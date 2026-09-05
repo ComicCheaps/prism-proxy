@@ -12,6 +12,8 @@ describe("local emulator", () => {
     expect(EMULATOR_PAGE).toContain('type="file"');
     expect(EMULATOR_PAGE).toContain("window.EJS_gameID");
     expect(EMULATOR_PAGE).toContain("URL.createObjectURL(file)");
+    expect(EMULATOR_PAGE).toContain("addEventListener('beforeunload'");
+    expect(EMULATOR_PAGE).not.toContain("loader.onload = () => URL.revokeObjectURL");
   });
 
   it("includes the self-hosted loader and selected core runtime files", () => {

@@ -43,15 +43,19 @@ export const EMULATOR_PAGE = `<!doctype html>
       const system = document.getElementById('system');
       const launch = document.getElementById('launch');
       const game = document.getElementById('game');
+      let activeGameUrl;
       rom.addEventListener('change', () => { launch.disabled = !rom.files.length; });
       launch.addEventListener('click', () => {
         const file = rom.files[0]; if (!file) return;
         launch.disabled = true; game.classList.remove('hidden'); game.replaceChildren();
         window.EJS_player = '#game'; window.EJS_core = system.value;
         window.EJS_gameID = system.value + '-' + file.name + '-' + file.size;
-        window.EJS_gameUrl = URL.createObjectURL(file); window.EJS_pathtodata = '/emulatorjs/data/';
-        const loader = document.createElement('script'); loader.src = '/emulatorjs/data/loader.js'; loader.onload = () => URL.revokeObjectURL(window.EJS_gameUrl); document.body.appendChild(loader);
+        if (activeGameUrl) URL.revokeObjectURL(activeGameUrl);
+        activeGameUrl = URL.createObjectURL(file);
+        window.EJS_gameUrl = activeGameUrl; window.EJS_pathtodata = '/emulatorjs/data/';
+        const loader = document.createElement('script'); loader.src = '/emulatorjs/data/loader.js'; document.body.appendChild(loader);
       });
+      addEventListener('beforeunload', () => { if (activeGameUrl) URL.revokeObjectURL(activeGameUrl); });
     </script>
   </body>
 </html>`;
