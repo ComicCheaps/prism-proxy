@@ -48,6 +48,7 @@ export const EMULATOR_PAGE = `<!doctype html>
         const file = rom.files[0]; if (!file) return;
         launch.disabled = true; game.classList.remove('hidden'); game.replaceChildren();
         window.EJS_player = '#game'; window.EJS_core = system.value;
+        window.EJS_gameID = system.value + '-' + file.name + '-' + file.size;
         window.EJS_gameUrl = URL.createObjectURL(file); window.EJS_pathtodata = '/emulatorjs/data/';
         const loader = document.createElement('script'); loader.src = '/emulatorjs/data/loader.js'; loader.onload = () => URL.revokeObjectURL(window.EJS_gameUrl); document.body.appendChild(loader);
       });

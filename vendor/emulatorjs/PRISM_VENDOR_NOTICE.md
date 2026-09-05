@@ -1,10 +1,12 @@
 # EmulatorJS Runtime
 
-This directory vendors the EmulatorJS stable runtime and only the cores used by
+This directory vendors the EmulatorJS runtime and only the cores used by
 Prism's local emulator feature.
 
 - Upstream: https://github.com/EmulatorJS/EmulatorJS
-- Pinned upstream release: v4.2.3
+- Frontend source: v4.2.4; generated `emulator.min.js` and `emulator.min.css`
+  are included for production use.
+- Core packages: v4.2.3, the latest stable core release at integration time.
 - License: GPL-3.0-only; see `LICENSE` in this directory.
 - Included cores: `mgba` (GBA), `gambatte` (GBC), `pcsx_rearmed` (PSX), and
   `melonds` (Nintendo DS).

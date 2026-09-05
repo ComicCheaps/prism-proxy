@@ -10,12 +10,14 @@ describe("local emulator", () => {
     expect(EMULATOR_PAGE).toContain('value="psx"');
     expect(EMULATOR_PAGE).toContain('value="nds"');
     expect(EMULATOR_PAGE).toContain('type="file"');
+    expect(EMULATOR_PAGE).toContain("window.EJS_gameID");
     expect(EMULATOR_PAGE).toContain("URL.createObjectURL(file)");
   });
 
   it("includes the self-hosted loader and selected core runtime files", () => {
     const coreDirectory = join(process.cwd(), "vendor", "emulatorjs", "data", "cores");
     expect(existsSync(join(process.cwd(), "vendor", "emulatorjs", "data", "loader.js"))).toBe(true);
+    expect(existsSync(join(process.cwd(), "vendor", "emulatorjs", "data", "emulator.min.js"))).toBe(true);
     for (const core of ["mgba", "gambatte", "pcsx_rearmed", "melonds"]) {
       expect(existsSync(join(coreDirectory, `${core}-wasm.data`))).toBe(true);
     }
