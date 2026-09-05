@@ -34,7 +34,13 @@ describe("clientShim", () => {
   it("routes dynamically assigned game-frame URLs through Prism", () => {
     const shim = clientShim("https://www.coolmathgames.com/");
     expect(shim).toContain("function routeFrame(frame)");
-    expect(shim).toContain('node.matches("iframe[src],frame[src]")');
+    expect(shim).toContain('[id=html5game][src]');
     expect(shim).toContain('attributeFilter:["src"]');
+  });
+
+  it("rewrites frame src assignments before frames load", () => {
+    const shim = clientShim("https://www.coolmathgames.com/");
+    expect(shim).toContain("Element.prototype.setAttribute=function(name,value)");
+    expect(shim).toContain('Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype,"src")');
   });
 });

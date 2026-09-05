@@ -60,14 +60,25 @@ export function rewriteSrcset(value: string, baseUrl: string, prefix = "/proxy")
 export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy"): string {
   const $ = cheerio.load(html);
 
+  let resourceBase = baseUrl;
+  const declaredBase = $("base").first().attr("href");
+  if (declaredBase) {
+    try {
+      resourceBase = new URL(declaredBase, baseUrl).href;
+    } catch {
+      resourceBase = baseUrl;
+    }
+  }
+
   // A target-provided base URL would make our root-relative /proxy URLs resolve
-  // on the target host. Remove it before rewriting game and page resources.
+  // on the target host. Use it only for server-side reference resolution, then
+  // remove it before returning the document to the browser.
   $("base").remove();
 
   for (const [tag, attr] of URL_ATTRS) {
     $(tag).each((_i, el) => {
       const current = $(el).attr(attr);
-      if (current) $(el).attr(attr, proxifyUrl(current, baseUrl, prefix));
+      if (current) $(el).attr(attr, proxifyUrl(current, resourceBase, prefix));
     });
   }
 
@@ -84,7 +95,7 @@ export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy"): s
 
   // Must run before the page's own scripts so dynamically created API requests
   // resolve against the target URL and route back through Prism.
-  if ($("head").length) $("head").prepend(clientShim(baseUrl, prefix));
+  if ($("head").length) $("head").prepend(clientShim(resourceBase, prefix));
 
   // Some result providers use a small inline redirect document instead of an
   // HTTP Location header. Route literal navigation targets through Prism.
@@ -102,7 +113,7 @@ export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy"): s
   for (const [tag, attr] of SRCSET_ATTRS) {
     $(tag).each((_i, el) => {
       const current = $(el).attr(attr);
-      if (current) $(el).attr(attr, rewriteSrcset(current, baseUrl, prefix));
+      if (current) $(el).attr(attr, rewriteSrcset(current, resourceBase, prefix));
     });
   }
 
@@ -111,7 +122,7 @@ export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy"): s
     const content = $(el).attr("content");
     if (!content) return;
     const match = content.match(/^(.*?url=)(.+)$/i);
-    if (match) $(el).attr("content", match[1] + proxifyUrl(match[2], baseUrl, prefix));
+    if (match) $(el).attr("content", match[1] + proxifyUrl(match[2], resourceBase, prefix));
   });
 
   // Subresource integrity hashes never match rewritten/rerouted assets.
