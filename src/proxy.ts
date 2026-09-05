@@ -4,6 +4,7 @@ import { gunzipSync, inflateSync, brotliDecompressSync } from "node:zlib";
 import { randomUUID } from "node:crypto";
 import { decodeTarget, encodeTarget } from "./codec.js";
 import { SessionCookieJar } from "./cookie-jar.js";
+import { TargetSessionStore } from "./target-session.js";
 import type { ProxyConfig } from "./config.js";
 import { rewriteCss } from "./rewrite/css.js";
 import { rewriteLocation, sanitizeResponseHeaders } from "./rewrite/headers.js";
@@ -18,6 +19,7 @@ const upstreamAgent = new Agent({
   connections: 128,
 });
 const cookieJar = new SessionCookieJar();
+const targetSessions = new TargetSessionStore();
 
 export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): void {
   app.get("/", (_req, reply) => reply.type("text/html").send(LANDING_PAGE));
@@ -56,8 +58,9 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
 
     let target: URL;
     try {
-      if (!token) throw new Error("Missing proxy URL");
-      target = new URL(decodeTarget(token));
+      const targetUrl = token ? decodeTarget(token) : targetSessions.get(sessionId);
+      if (!targetUrl) throw new Error("Missing proxy URL");
+      target = new URL(targetUrl);
     } catch {
       return reply.code(400).send({ error: "Invalid proxy token" });
     }
@@ -121,6 +124,7 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
       contentType.includes("text/html") || contentType.includes("text/css");
 
     if (needsRewrite) {
+      if (contentType.includes("text/html")) targetSessions.set(sessionId, target);
       const headers = sanitizeResponseHeaders(upstream.headers, true);
       const location = rewriteLocation(headers["location"], target);
       if (location) headers["location"] = location;
