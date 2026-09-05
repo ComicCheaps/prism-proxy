@@ -23,6 +23,9 @@ describe("local emulator", () => {
     expect(EMULATOR_PAGE).toContain("window.EJS_onGameStart");
     expect(EMULATOR_PAGE).toContain("Game started");
     expect(EMULATOR_PAGE).toContain("Display surface created");
+    expect(EMULATOR_PAGE).toContain("Video frames detected");
+    expect(EMULATOR_PAGE).toContain("No video frames detected");
+    expect(EMULATOR_PAGE).toContain("canvas.toDataURL('image/png')");
     expect(EMULATOR_PAGE).toContain("function ignorableError(error)");
     expect(EMULATOR_PAGE).toContain("Game core did not start");
     expect(EMULATOR_PAGE).not.toContain("loader.onload = () => URL.revokeObjectURL");

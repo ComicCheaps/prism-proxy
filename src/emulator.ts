@@ -19,7 +19,7 @@ export const EMULATOR_PAGE = `<!doctype html>
       .systems { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; } label { display: grid; gap: 6px; font: 700 12px ui-monospace, monospace; color: #47615e; text-transform: uppercase; letter-spacing: .04em; }
       select, input { width: 100%; padding: 13px; border: 1px solid #b9ceca; border-radius: 0; color: #162a2a; background: #f7fbfa; font: 15px ui-monospace, monospace; }
       button { border: 0; padding: 14px 18px; background: #e65a3f; color: #fffdf8; font: 700 13px ui-monospace, monospace; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; } button:disabled { background: #9da9a6; cursor: not-allowed; }
-      .notice { margin: 0; color: #47615e; font: 13px ui-monospace, monospace; line-height: 1.6; } .status { display: grid; gap: 7px; border-top: 1px solid #b9ceca; padding-top: 14px; color: #47615e; font: 12px ui-monospace, monospace; } .status strong { color: #162a2a; } .status[data-state="error"] strong { color: #bd3f2b; } .status[data-state="ready"] strong { color: #0d9273; } #emulator-stage { position: relative; min-height: 0; margin-top: 34px; } #start-overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; min-height: 360px; background: rgba(12, 25, 25, .84); } #start-overlay button { min-width: 180px; background: #e65a3f; } #start-overlay p { margin: 12px 24px 0; color: #d7e6e1; font: 13px ui-monospace, monospace; text-align: center; } #start-overlay.hidden { display: none; } .hidden { display: none; }
+      .notice { margin: 0; color: #47615e; font: 13px ui-monospace, monospace; line-height: 1.6; } .status { display: grid; gap: 7px; border-top: 1px solid #b9ceca; padding-top: 14px; color: #47615e; font: 12px ui-monospace, monospace; } .status strong { color: #162a2a; } .status[data-state="error"] strong { color: #bd3f2b; } .status[data-state="ready"] strong { color: #0d9273; } #emulator-stage { position: relative; min-height: 0; margin-top: 34px; } #game .ejs_parent, #game .ejs_game { width: 100% !important; min-height: 480px; } #game canvas { position: relative !important; z-index: 2 !important; display: block !important; width: 100% !important; min-height: 480px; visibility: visible !important; opacity: 1 !important; background: #000; } #start-overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; min-height: 360px; background: rgba(12, 25, 25, .84); } #start-overlay button { min-width: 180px; background: #e65a3f; } #start-overlay p { margin: 12px 24px 0; color: #d7e6e1; font: 13px ui-monospace, monospace; text-align: center; } #start-overlay.hidden { display: none; } .hidden { display: none; }
       @media (max-width: 650px) { header, main { width: min(100% - 28px,960px); } .systems { grid-template-columns: repeat(2,1fr); } }
     </style>
   </head>
@@ -53,6 +53,7 @@ export const EMULATOR_PAGE = `<!doctype html>
       const cores = { gba: 'mgba', gb: 'gambatte', psx: 'pcsx_rearmed', nds: 'melonds' };
       let activeGameUrl;
       let startupTimer;
+      let visualTimer;
       let gameStarted = false;
       function setStatus(state, title, detail) { status.dataset.state = state; statusTitle.textContent = title; statusDetail.textContent = detail; }
       function fail(error) { launch.disabled = false; setStatus('error', 'Emulator stopped', error instanceof Error ? error.message : String(error)); }
@@ -91,6 +92,7 @@ export const EMULATOR_PAGE = `<!doctype html>
           gameStarted = true;
           clearTimeout(startupTimer);
           setStatus('ready', 'Game started', 'The ' + core + ' core accepted the selected local file.');
+          watchForVisualFrames();
         };
         if (activeGameUrl) URL.revokeObjectURL(activeGameUrl);
         activeGameUrl = URL.createObjectURL(file);
@@ -131,7 +133,30 @@ export const EMULATOR_PAGE = `<!doctype html>
         };
         document.body.appendChild(loader);
       });
-      addEventListener('beforeunload', () => { clearTimeout(startupTimer); if (activeGameUrl) URL.revokeObjectURL(activeGameUrl); });
+      function watchForVisualFrames() {
+        let previousFrame = '';
+        let attempts = 0;
+        clearInterval(visualTimer);
+        visualTimer = setInterval(() => {
+          const canvas = game.querySelector('canvas');
+          if (!canvas) return;
+          attempts += 1;
+          try {
+            const frame = canvas.toDataURL('image/png');
+            if (previousFrame && frame !== previousFrame) {
+              clearInterval(visualTimer);
+              setStatus('ready', 'Video frames detected', 'The game is rendering video through the ' + core + ' core.');
+              return;
+            }
+            previousFrame = frame;
+          } catch { clearInterval(visualTimer); }
+          if (attempts >= 8) {
+            clearInterval(visualTimer);
+            setStatus('error', 'No video frames detected', 'Audio may be running, but the game canvas is not changing. Try fullscreen or reload with hardware acceleration enabled.');
+          }
+        }, 750);
+      }
+      addEventListener('beforeunload', () => { clearTimeout(startupTimer); clearInterval(visualTimer); if (activeGameUrl) URL.revokeObjectURL(activeGameUrl); });
     </script>
   </body>
 </html>`;
