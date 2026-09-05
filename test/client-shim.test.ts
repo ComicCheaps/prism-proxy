@@ -19,4 +19,8 @@ describe("clientShim", () => {
     expect(shim).toContain("HTMLFormElement.prototype.submit=function()");
     expect(shim).toContain("HTMLFormElement.prototype.requestSubmit=function()");
   });
+
+  it("provides a same-tab Prism navigation function", () => {
+    expect(clientShim("https://duckduckgo.com/")).toContain("window.__prismNavigate=function(value)");
+  });
 });

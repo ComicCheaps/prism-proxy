@@ -82,6 +82,19 @@ export function rewriteHtml(html: string, baseUrl: string, prefix = "/proxy"): s
   // resolve against the target URL and route back through Prism.
   if ($("head").length) $("head").prepend(clientShim(baseUrl, prefix));
 
+  // Some result providers use a small inline redirect document instead of an
+  // HTTP Location header. Route literal navigation targets through Prism.
+  $("script:not([src])").each((_i, el) => {
+    const script = $(el).html();
+    if (!script) return;
+    $(el).text(
+      script.replace(
+        /(?:window\.(?:parent\.)?)?location\.(?:replace|assign)\(\s*(["'])(https?:[^"']+)\1\s*\)/g,
+        (_match, _quote: string, url: string) => `window.__prismNavigate(${JSON.stringify(url)})`,
+      ),
+    );
+  });
+
   for (const [tag, attr] of SRCSET_ATTRS) {
     $(tag).each((_i, el) => {
       const current = $(el).attr(attr);

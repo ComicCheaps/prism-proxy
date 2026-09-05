@@ -23,6 +23,15 @@ describe("rewriteHtml", () => {
     expect(decodeTarget(firstToken(out))).toBe("https://coolmathgames.com/");
   });
 
+  it("keeps inline location redirects inside Prism", () => {
+    const out = rewriteHtml(
+      `<script>window.parent.location.replace("https://coolmathgames.com")</script>`,
+      BASE,
+    );
+    expect(out).toContain('window.__prismNavigate("https://coolmathgames.com")');
+    expect(out).not.toContain("window.parent.location.replace");
+  });
+
   it("leaves data:, javascript:, and fragment URLs alone", () => {
     const out = rewriteHtml(
       `<img src="data:image/png;base64,AAAA"><a href="#top">top</a><a href="javascript:void(0)">x</a>`,

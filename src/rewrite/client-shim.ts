@@ -13,6 +13,7 @@ const skip=/^(data:|blob:|about:|javascript:|mailto:|tel:|#)/i;
 if("serviceWorker" in navigator)navigator.serviceWorker.register("/prism-sw.js",{scope:"/"}).then(function(registration){function send(){(navigator.serviceWorker.controller||registration.active)?.postMessage({type:"prism-target",base:base})}send();navigator.serviceWorker.addEventListener("controllerchange",send)}).catch(function(){});
 function token(value){return btoa(unescape(encodeURIComponent(value))).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"")}
 function route(value){if(typeof value!=="string"||skip.test(value)||value.indexOf(prefix)===0)return value;try{const resolved=new URL(value,base);if(resolved.origin===location.origin&&resolved.pathname===prefix&&resolved.searchParams.has("__prism"))return resolved.pathname+resolved.search+resolved.hash;return prefix+"?__prism="+encodeURIComponent(token(resolved.href))}catch{return value}}
+window.__prismNavigate=function(value){location.replace(route(value))};
 function routeForm(form){const action=form.getAttribute("action");if(!action){form.action=prefix+"?__prism="+encodeURIComponent(token(base));return}if(action.indexOf(prefix)!==0)form.action=route(action)}
 document.addEventListener("submit",function(event){if(event.target instanceof HTMLFormElement)routeForm(event.target)},true);
 const submit=HTMLFormElement.prototype.submit;
