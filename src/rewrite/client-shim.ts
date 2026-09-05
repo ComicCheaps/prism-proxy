@@ -14,6 +14,11 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("/prism-sw.js",
 function token(value){return btoa(unescape(encodeURIComponent(value))).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"")}
 function route(value){if(typeof value!=="string"||skip.test(value)||value.indexOf(prefix)===0)return value;try{const resolved=new URL(value,base);if(resolved.origin===location.origin&&resolved.pathname===prefix&&resolved.searchParams.has("__prism"))return resolved.pathname+resolved.search+resolved.hash;return prefix+"?__prism="+encodeURIComponent(token(resolved.href))}catch{return value}}
 window.__prismNavigate=function(value){location.replace(route(value))};
+function routeLink(link){const href=link.getAttribute("href");if(!href||href.indexOf(prefix)===0||skip.test(href))return;link.setAttribute("href",route(href));link.removeAttribute("target")}
+document.addEventListener("click",function(event){const link=event.target instanceof Element?event.target.closest("a[href],area[href]"):null;if(link)routeLink(link)},true);
+const openWindow=window.open;
+window.open=function(url){if(typeof url==="string"&&!skip.test(url)){window.__prismNavigate(url);return null}return openWindow.apply(window,arguments)};
+new MutationObserver(function(records){for(const record of records){for(const node of record.addedNodes){if(node instanceof Element){if(node.matches("a[href],area[href]"))routeLink(node);node.querySelectorAll("a[href],area[href]").forEach(routeLink)}}}}).observe(document.documentElement,{childList:true,subtree:true});
 function routeForm(form){const action=form.getAttribute("action");if(!action){form.action=prefix+"?__prism="+encodeURIComponent(token(base));return}if(action.indexOf(prefix)!==0)form.action=route(action)}
 document.addEventListener("submit",function(event){if(event.target instanceof HTMLFormElement)routeForm(event.target)},true);
 const submit=HTMLFormElement.prototype.submit;

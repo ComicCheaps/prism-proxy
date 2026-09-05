@@ -23,4 +23,11 @@ describe("clientShim", () => {
   it("provides a same-tab Prism navigation function", () => {
     expect(clientShim("https://duckduckgo.com/")).toContain("window.__prismNavigate=function(value)");
   });
+
+  it("routes dynamically created links and popup requests", () => {
+    const shim = clientShim("https://www.coolmathgames.com/");
+    expect(shim).toContain("new MutationObserver");
+    expect(shim).toContain("window.open=function(url)");
+    expect(shim).toContain("event.target.closest");
+  });
 });
