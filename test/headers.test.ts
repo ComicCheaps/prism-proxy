@@ -20,9 +20,16 @@ describe("sanitizeResponseHeaders", () => {
   });
 
   it("drops stale content metadata for rewritten bodies", () => {
-    const headers = sanitizeResponseHeaders({ "content-encoding": "gzip", "content-length": "99" }, true);
+    const headers = sanitizeResponseHeaders({
+      "content-encoding": "gzip",
+      "content-length": "99",
+      "cache-control": "public, max-age=3600",
+      etag: "origin-version",
+    }, true);
     expect(headers).not.toHaveProperty("content-encoding");
     expect(headers).not.toHaveProperty("content-length");
+    expect(headers).not.toHaveProperty("cache-control");
+    expect(headers).not.toHaveProperty("etag");
   });
 });
 

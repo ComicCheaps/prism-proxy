@@ -45,6 +45,7 @@ export function sanitizeResponseHeaders(
     const name = key.toLowerCase();
     if (STRIPPED_RESPONSE_HEADERS.has(name)) continue;
     if (transformed && (name === "content-length" || name === "content-encoding")) continue;
+    if (transformed && ["cache-control", "etag", "last-modified", "expires", "vary"].includes(name)) continue;
     if (!ALLOWED_RESPONSE_HEADERS.has(name)) continue;
     // NOTE: joining set-cookie like this is wrong for multi-cookie responses;
     // the per-session cookie jar (v0.2) will replace this entirely.

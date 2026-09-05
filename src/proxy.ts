@@ -140,6 +140,7 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
         targetSessions.set(sessionId, target);
       }
       const headers = sanitizeResponseHeaders(upstream.headers, true);
+      headers["cache-control"] = "no-store";
       const location = rewriteLocation(headers["location"], target);
       if (location) headers["location"] = location;
       reply.code(upstream.statusCode).headers(headers);
