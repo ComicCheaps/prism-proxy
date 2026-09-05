@@ -17,4 +17,9 @@ describe("findProxyToken", () => {
   it("does not mistake an ordinary url field for a proxy token", () => {
     expect(findProxyToken({ url: "https://example.com" }, undefined)).toBeUndefined();
   });
+
+  it("accepts valid legacy url tokens from cached Prism pages", () => {
+    const token = encodeTarget("https://www.google.com/search");
+    expect(findProxyToken({ url: token, q: "proxy" }, undefined)).toBe(token);
+  });
 });

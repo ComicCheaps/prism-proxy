@@ -167,11 +167,26 @@ export function findProxyToken(
 ): string | undefined {
   const direct = query.__prism;
   if (typeof direct === "string") return direct;
+  // Older rewritten documents used `url` for the token. Only accept it when it
+  // decodes to a web URL, so an ordinary target-site field named `url` cannot
+  // be mistaken for proxy state.
+  const legacy = query.url;
+  if (typeof legacy === "string" && isWebToken(legacy)) return legacy;
   if (!referer) return undefined;
   try {
-    return new URL(referer).searchParams.get("__prism") ?? undefined;
+    const source = new URL(referer);
+    return source.searchParams.get("__prism") ?? source.searchParams.get("url") ?? undefined;
   } catch {
     return undefined;
+  }
+}
+
+function isWebToken(token: string): boolean {
+  try {
+    const url = new URL(decodeTarget(token));
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
   }
 }
 
