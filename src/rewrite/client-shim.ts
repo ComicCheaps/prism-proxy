@@ -10,8 +10,9 @@ export function clientShim(targetUrl: string, prefix = "/proxy"): string {
 const base=atob("${Buffer.from(targetUrl, "utf8").toString("base64")}");
 const prefix="${prefix}";
 const skip=/^(data:|blob:|about:|javascript:|mailto:|tel:|#)/i;
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/prism-sw.js",{scope:"/"}).then(function(registration){function send(){(navigator.serviceWorker.controller||registration.active)?.postMessage({type:"prism-target",base:base})}send();navigator.serviceWorker.addEventListener("controllerchange",send)}).catch(function(){});
 function token(value){return btoa(unescape(encodeURIComponent(value))).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"")}
-function route(value){if(typeof value!=="string"||skip.test(value)||value.indexOf(prefix)===0)return value;try{return prefix+"?__prism="+encodeURIComponent(token(new URL(value,base).href))}catch{return value}}
+function route(value){if(typeof value!=="string"||skip.test(value)||value.indexOf(prefix)===0)return value;try{const resolved=new URL(value,base);if(resolved.origin===location.origin&&resolved.pathname===prefix&&resolved.searchParams.has("__prism"))return resolved.pathname+resolved.search+resolved.hash;return prefix+"?__prism="+encodeURIComponent(token(resolved.href))}catch{return value}}
 document.addEventListener("submit",function(event){const form=event.target;if(!(form instanceof HTMLFormElement))return;const action=form.getAttribute("action");if(!action){form.action=prefix+"?__prism="+encodeURIComponent(token(base));return}if(action.indexOf(prefix)===0)return;form.action=route(action)},true);
 const nativeFetch=window.fetch.bind(window);
 window.fetch=function(input,init){if(input instanceof Request){return nativeFetch(new Request(route(input.url),input),init)}return nativeFetch(route(input),init)};

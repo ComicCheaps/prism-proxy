@@ -9,6 +9,7 @@ import { rewriteCss } from "./rewrite/css.js";
 import { rewriteLocation, sanitizeResponseHeaders } from "./rewrite/headers.js";
 import { rewriteHtml } from "./rewrite/html.js";
 import { LANDING_PAGE } from "./landing.js";
+import { SERVICE_WORKER } from "./service-worker.js";
 
 // Reuse TCP/TLS connections to origin servers instead of handshaking per asset.
 const upstreamAgent = new Agent({
@@ -21,6 +22,12 @@ const cookieJar = new SessionCookieJar();
 export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): void {
   app.get("/", (_req, reply) => reply.type("text/html").send(LANDING_PAGE));
   app.get("/health", (_req, reply) => reply.send({ status: "ok" }));
+  app.get("/prism-sw.js", (_req, reply) =>
+    reply
+      .header("cache-control", "no-cache")
+      .type("application/javascript; charset=utf-8")
+      .send(SERVICE_WORKER),
+  );
 
   // Landing-page form target: normalize the user's input and bounce to a token URL.
   app.get("/go", (req, reply) => {
