@@ -30,4 +30,11 @@ describe("clientShim", () => {
     expect(shim).toContain("window.open=function(url)");
     expect(shim).toContain("event.target.closest");
   });
+
+  it("routes dynamically assigned game-frame URLs through Prism", () => {
+    const shim = clientShim("https://www.coolmathgames.com/");
+    expect(shim).toContain("function routeFrame(frame)");
+    expect(shim).toContain('node.matches("iframe[src],frame[src]")');
+    expect(shim).toContain('attributeFilter:["src"]');
+  });
 });
