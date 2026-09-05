@@ -41,10 +41,10 @@ export const LANDING_PAGE = `<!doctype html>
     <main>
       <p class="eyebrow">Open web access</p>
       <h1>Browse through the <em>prism.</em></h1>
-      <p class="lede">Enter a website and Prism fetches it through a protected, open-source gateway.</p>
+      <p class="lede">Search with DuckDuckGo or open a public website through a protected, open-source gateway.</p>
       <form action="/go" method="get">
-        <input name="url" type="text" inputmode="url" autocomplete="url" placeholder="https://example.com" aria-label="Website URL" required autofocus />
-        <button type="submit">Open site</button>
+        <input name="url" type="text" inputmode="url" autocomplete="off" placeholder="Search DuckDuckGo or enter a URL" aria-label="Search DuckDuckGo or enter a website URL" required autofocus />
+        <button type="submit">Go</button>
       </form>
       <p class="notice">Some complex, login-required, or media-heavy sites may not be compatible yet. Never enter passwords or private information in a public proxy.</p>
     </main>

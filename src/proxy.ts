@@ -12,6 +12,7 @@ import { rewriteHtml } from "./rewrite/html.js";
 import { LANDING_PAGE } from "./landing.js";
 import { SERVICE_WORKER } from "./service-worker.js";
 import { isUnsupportedHost, unsupportedPage } from "./unsupported.js";
+import { resolveStartTarget } from "./start-target.js";
 
 // Reuse TCP/TLS connections to origin servers instead of handshaking per asset.
 const upstreamAgent = new Agent({
@@ -36,7 +37,7 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
   app.get("/go", (req, reply) => {
     const { url } = req.query as { url?: string };
     if (!url) return reply.code(400).send({ error: "Missing ?url=" });
-    const normalized = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    const normalized = resolveStartTarget(url);
     try {
       new URL(normalized);
     } catch {

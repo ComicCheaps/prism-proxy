@@ -18,6 +18,22 @@ reliably from a web-rewriting proxy.
 Search-result links that specify `target="_blank"` are opened in the current
 Prism tab so navigation remains inside the proxy.
 
+DuckDuckGo is Prism's default search engine: enter search words on the home
+page, or enter a domain/URL to navigate directly.
+
+## Video Alternatives
+
+YouTube cannot be run through Prism because its player uses Google-managed,
+origin-bound security controls. These alternatives remain useful without trying
+to defeat those controls:
+
+- Use a normal YouTube link outside Prism when you need YouTube specifically.
+- Browse public [PeerTube](https://joinpeertube.org/) instances, whose videos
+	are designed for federated hosting and can be opened through Prism when the
+	instance has no origin challenge.
+- Host your own videos on a service you control, or on a compatible public
+	video host, and link to them through Prism.
+
 ## Quickstart
 
 ```bash
