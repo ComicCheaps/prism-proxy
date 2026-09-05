@@ -49,6 +49,7 @@ export const EMULATOR_PAGE = `<!doctype html>
       const statusDetail = document.getElementById('status-detail');
       const cores = { gba: 'mgba', gb: 'gambatte', psx: 'pcsx_rearmed', nds: 'melonds' };
       let activeGameUrl;
+      let startupTimer;
       function setStatus(state, title, detail) { status.dataset.state = state; statusTitle.textContent = title; statusDetail.textContent = detail; }
       function fail(error) { launch.disabled = false; setStatus('error', 'Emulator stopped', error instanceof Error ? error.message : String(error)); }
       rom.addEventListener('change', () => {
@@ -56,10 +57,14 @@ export const EMULATOR_PAGE = `<!doctype html>
         const file = rom.files[0];
         if (file) setStatus('ready', 'Game file selected', file.name + ' (' + Math.ceil(file.size / 1024) + ' KiB).');
       });
-      addEventListener('error', event => { if (game.classList.contains('hidden')) return; fail(event.message || 'A browser error interrupted emulation.'); });
+      addEventListener('error', event => {
+        if (game.classList.contains('hidden') || /wake lock permission/i.test(event.message || '')) return;
+        fail(event.message || 'A browser error interrupted emulation.');
+      });
       addEventListener('unhandledrejection', event => { if (!game.classList.contains('hidden')) fail(event.reason || 'An emulator request failed.'); });
       launch.addEventListener('click', async () => {
         const file = rom.files[0]; if (!file) return;
+        clearTimeout(startupTimer);
         launch.disabled = true; game.classList.remove('hidden'); game.replaceChildren();
         const core = cores[system.value];
         setStatus('loading', 'Checking local game file', 'Reading ' + file.name + ' before the emulator starts.');
@@ -82,13 +87,33 @@ export const EMULATOR_PAGE = `<!doctype html>
         loader.onload = () => {
           setStatus('loading', 'Emulator interface loaded', 'Starting the ' + system.options[system.selectedIndex].text + ' core.');
           const observer = new MutationObserver(() => {
-            if (game.querySelector('.ejs_game')) { observer.disconnect(); setStatus('ready', 'Emulator ready', 'Use Start Game in the embedded EmulatorJS controls.'); }
+            const startButton = game.querySelector('.ejs_start_button');
+            if (!startButton) return;
+            observer.disconnect();
+            setStatus('ready', 'Emulator ready to start', 'Press Start Game in the embedded EmulatorJS player.');
+            startButton.addEventListener('click', () => {
+              setStatus('loading', 'Starting game core', 'EmulatorJS is loading the local file with ' + core + '.');
+              watchForGameDisplay();
+            }, { once: true });
           });
+          function watchForGameDisplay() {
+            const displayObserver = new MutationObserver(() => {
+              if (!game.querySelector('canvas')) return;
+              clearTimeout(startupTimer); displayObserver.disconnect();
+              setStatus('ready', 'Core display initialized', 'The ' + core + ' core created its game display.');
+            });
+            displayObserver.observe(game, { childList: true, subtree: true });
+            startupTimer = setTimeout(() => {
+              displayObserver.disconnect();
+              setStatus('error', 'Game core did not start', 'The emulator loaded, but no game display appeared. Check that this is a valid ' + system.options[system.selectedIndex].text + ' file.');
+              launch.disabled = false;
+            }, 20000);
+          }
           observer.observe(game, { childList: true, subtree: true });
         };
         document.body.appendChild(loader);
       });
-      addEventListener('beforeunload', () => { if (activeGameUrl) URL.revokeObjectURL(activeGameUrl); });
+      addEventListener('beforeunload', () => { clearTimeout(startupTimer); if (activeGameUrl) URL.revokeObjectURL(activeGameUrl); });
     </script>
   </body>
 </html>`;
