@@ -71,6 +71,13 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
       return reply.code(403).send({ error: "That host is not allowed" });
     }
 
+    // Google navigates to a same-origin /proxy URL without its form action
+    // token. The session fallback points to Google home, but search fields
+    // belong on /search rather than /.
+    if (!query.__prism && isGoogleHomeSearch(target, browserQuery)) {
+      target.pathname = "/search";
+      target.search = "";
+    }
     // Carry the browser's query string onto the target — forms that submit via
     // GET (and search URLs like ?search=foo) depend on it.
     for (const [key, value] of Object.entries(browserQuery)) {
@@ -124,7 +131,9 @@ export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): 
       contentType.includes("text/html") || contentType.includes("text/css");
 
     if (needsRewrite) {
-      if (contentType.includes("text/html")) targetSessions.set(sessionId, target);
+      if (contentType.includes("text/html") && isDocumentRequest(req.headers)) {
+        targetSessions.set(sessionId, target);
+      }
       const headers = sanitizeResponseHeaders(upstream.headers, true);
       const location = rewriteLocation(headers["location"], target);
       if (location) headers["location"] = location;
@@ -197,6 +206,24 @@ function isWebToken(token: string): boolean {
 function readSessionId(cookieHeader: string | undefined): string | undefined {
   const match = cookieHeader?.match(/(?:^|;\s*)prism_sid=([^;]+)/);
   return match?.[1];
+}
+
+export function isGoogleHomeSearch(
+  target: URL,
+  query: Record<string, string | string[] | undefined>,
+): boolean {
+  return (
+    (target.hostname === "www.google.com" || target.hostname.endsWith(".google.com")) &&
+    (target.pathname === "/" || target.pathname === "/webhp") &&
+    typeof query.q === "string" &&
+    query.q.length > 0
+  );
+}
+
+function isDocumentRequest(headers: Record<string, string | string[] | undefined>): boolean {
+  const destination = headers["sec-fetch-dest"];
+  const accept = headers.accept;
+  return destination === "document" || (destination === undefined && String(accept).includes("text/html"));
 }
 
 function isBlocked(hostname: string, config: ProxyConfig): boolean {

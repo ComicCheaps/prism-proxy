@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { encodeTarget } from "../src/codec.js";
-import { findProxyToken } from "../src/proxy.js";
+import { findProxyToken, isGoogleHomeSearch } from "../src/proxy.js";
 
 describe("findProxyToken", () => {
   it("uses the reserved query parameter", () => {
@@ -21,5 +21,11 @@ describe("findProxyToken", () => {
   it("accepts valid legacy url tokens from cached Prism pages", () => {
     const token = encodeTarget("https://www.google.com/search");
     expect(findProxyToken({ url: token, q: "proxy" }, undefined)).toBe(token);
+  });
+
+  it("recognizes a tokenless Google home-page search", () => {
+    expect(isGoogleHomeSearch(new URL("https://www.google.com/"), { q: "wikipedia" })).toBe(true);
+    expect(isGoogleHomeSearch(new URL("https://www.google.com/"), { q: "" })).toBe(false);
+    expect(isGoogleHomeSearch(new URL("https://example.com/"), { q: "wikipedia" })).toBe(false);
   });
 });

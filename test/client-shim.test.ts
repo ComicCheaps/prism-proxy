@@ -13,4 +13,10 @@ describe("clientShim", () => {
       'document.addEventListener("submit"',
     );
   });
+
+  it("routes programmatic native form submissions", () => {
+    const shim = clientShim("https://www.google.com/");
+    expect(shim).toContain("HTMLFormElement.prototype.submit=function()");
+    expect(shim).toContain("HTMLFormElement.prototype.requestSubmit=function()");
+  });
 });
