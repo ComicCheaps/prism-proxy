@@ -53,22 +53,27 @@ export const EMULATOR_PAGE = `<!doctype html>
       const cores = { gba: 'mgba', gb: 'gambatte', psx: 'pcsx_rearmed', nds: 'melonds' };
       let activeGameUrl;
       let startupTimer;
+      let gameStarted = false;
       function setStatus(state, title, detail) { status.dataset.state = state; statusTitle.textContent = title; statusDetail.textContent = detail; }
       function fail(error) { launch.disabled = false; setStatus('error', 'Emulator stopped', error instanceof Error ? error.message : String(error)); }
+      function ignorableError(error) { return /wake lock permission/i.test(error instanceof Error ? error.message : String(error || '')); }
       rom.addEventListener('change', () => {
         launch.disabled = !rom.files.length;
         const file = rom.files[0];
         if (file) setStatus('ready', 'Game file selected', file.name + ' (' + Math.ceil(file.size / 1024) + ' KiB).');
       });
       addEventListener('error', event => {
-        if (stage.classList.contains('hidden') || /wake lock permission/i.test(event.message || '')) return;
+        if (stage.classList.contains('hidden') || ignorableError(event.message)) return;
         fail(event.message || 'A browser error interrupted emulation.');
       });
-      addEventListener('unhandledrejection', event => { if (!stage.classList.contains('hidden')) fail(event.reason || 'An emulator request failed.'); });
+      addEventListener('unhandledrejection', event => {
+        if (!stage.classList.contains('hidden') && !ignorableError(event.reason)) fail(event.reason || 'An emulator request failed.');
+      });
       launch.addEventListener('click', async () => {
         const file = rom.files[0]; if (!file) return;
         clearTimeout(startupTimer);
         launch.disabled = true; stage.classList.remove('hidden'); overlay.classList.add('hidden'); game.replaceChildren();
+        gameStarted = false;
         const core = cores[system.value];
         setStatus('loading', 'Checking local game file', 'Reading ' + file.name + ' before the emulator starts.');
         try {
@@ -81,6 +86,12 @@ export const EMULATOR_PAGE = `<!doctype html>
         } catch (error) { fail(error); return; }
         window.EJS_player = '#game'; window.EJS_core = system.value;
         window.EJS_gameID = system.value + '-' + file.name + '-' + file.size;
+        window.EJS_ready = () => setStatus('ready', 'Emulator ready to start', 'Press Start game below to begin the embedded player.');
+        window.EJS_onGameStart = () => {
+          gameStarted = true;
+          clearTimeout(startupTimer);
+          setStatus('ready', 'Game started', 'The ' + core + ' core accepted the selected local file.');
+        };
         if (activeGameUrl) URL.revokeObjectURL(activeGameUrl);
         activeGameUrl = URL.createObjectURL(file);
         window.EJS_gameUrl = activeGameUrl; window.EJS_pathtodata = '/emulatorjs/data/';
@@ -105,13 +116,14 @@ export const EMULATOR_PAGE = `<!doctype html>
           function watchForGameDisplay() {
             const displayObserver = new MutationObserver(() => {
               if (!game.querySelector('canvas')) return;
-              clearTimeout(startupTimer); displayObserver.disconnect();
-              setStatus('ready', 'Core display initialized', 'The ' + core + ' core created its game display.');
+              displayObserver.disconnect();
+              if (!gameStarted) setStatus('loading', 'Display surface created', 'Waiting for the ' + core + ' core to start the selected game file.');
             });
             displayObserver.observe(game, { childList: true, subtree: true });
             startupTimer = setTimeout(() => {
               displayObserver.disconnect();
-              setStatus('error', 'Game core did not start', 'The emulator loaded, but no game display appeared. Check that this is a valid ' + system.options[system.selectedIndex].text + ' file.');
+              if (gameStarted) return;
+              setStatus('error', 'Game core did not start', 'The display opened, but ' + core + ' did not report a game start. Check that this is a valid ' + system.options[system.selectedIndex].text + ' file.');
               launch.disabled = false;
             }, 20000);
           }

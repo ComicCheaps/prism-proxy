@@ -20,7 +20,10 @@ describe("local emulator", () => {
     expect(EMULATOR_PAGE).toContain('id="start-game"');
     expect(EMULATOR_PAGE).toContain("Emulator ready to start");
     expect(EMULATOR_PAGE).toContain("Press Start game below");
-    expect(EMULATOR_PAGE).toContain("Core display initialized");
+    expect(EMULATOR_PAGE).toContain("window.EJS_onGameStart");
+    expect(EMULATOR_PAGE).toContain("Game started");
+    expect(EMULATOR_PAGE).toContain("Display surface created");
+    expect(EMULATOR_PAGE).toContain("function ignorableError(error)");
     expect(EMULATOR_PAGE).toContain("Game core did not start");
     expect(EMULATOR_PAGE).not.toContain("loader.onload = () => URL.revokeObjectURL");
   });
