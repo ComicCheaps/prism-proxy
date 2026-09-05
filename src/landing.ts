@@ -48,6 +48,6 @@ export const LANDING_PAGE = `<!doctype html>
       </form>
       <p class="notice">Some complex, login-required, or media-heavy sites may not be compatible yet. Never enter passwords or private information in a public proxy.</p>
     </main>
-    <footer><span>AGPL-3.0</span><a href="https://github.com/ComicCheaps/prism-proxy">Source code</a></footer>
+    <footer><a href="/emulator">Local emulator</a><a href="https://github.com/ComicCheaps/prism-proxy">Source code</a></footer>
   </body>
 </html>`;

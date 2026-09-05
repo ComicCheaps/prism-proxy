@@ -21,6 +21,15 @@ Prism tab so navigation remains inside the proxy.
 DuckDuckGo is Prism's default search engine: enter search words on the home
 page, or enter a domain/URL to navigate directly.
 
+## Local Emulator
+
+`/emulator` runs a self-hosted [EmulatorJS](https://github.com/EmulatorJS/EmulatorJS)
+launcher for Game Boy Advance, Game Boy Color, PlayStation, and Nintendo DS.
+It accepts a file selected from the visitor's device and never uploads or stores
+that file. EmulatorJS is GPLv3; its pinned runtime and license are included in
+`vendor/emulatorjs/`. Prism includes no game files: use only homebrew,
+public-domain, or game files you are authorized to use.
+
 ## Video Alternatives
 
 YouTube cannot be run through Prism because its player uses Google-managed,

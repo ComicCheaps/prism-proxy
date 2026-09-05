@@ -13,6 +13,7 @@ import { LANDING_PAGE } from "./landing.js";
 import { SERVICE_WORKER } from "./service-worker.js";
 import { isUnsupportedHost, unsupportedPage } from "./unsupported.js";
 import { resolveStartTarget } from "./start-target.js";
+import { EMULATOR_PAGE } from "./emulator.js";
 
 // Reuse TCP/TLS connections to origin servers instead of handshaking per asset.
 const upstreamAgent = new Agent({
@@ -25,6 +26,7 @@ const targetSessions = new TargetSessionStore();
 
 export function registerProxyRoutes(app: FastifyInstance, config: ProxyConfig): void {
   app.get("/", (_req, reply) => reply.type("text/html").send(LANDING_PAGE));
+  app.get("/emulator", (_req, reply) => reply.type("text/html").send(EMULATOR_PAGE));
   app.get("/health", (_req, reply) => reply.send({ status: "ok" }));
   app.get("/prism-sw.js", (_req, reply) =>
     reply
