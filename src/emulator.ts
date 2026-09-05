@@ -19,7 +19,7 @@ export const EMULATOR_PAGE = `<!doctype html>
       .systems { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; } label { display: grid; gap: 6px; font: 700 12px ui-monospace, monospace; color: #47615e; text-transform: uppercase; letter-spacing: .04em; }
       select, input { width: 100%; padding: 13px; border: 1px solid #b9ceca; border-radius: 0; color: #162a2a; background: #f7fbfa; font: 15px ui-monospace, monospace; }
       button { border: 0; padding: 14px 18px; background: #e65a3f; color: #fffdf8; font: 700 13px ui-monospace, monospace; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; } button:disabled { background: #9da9a6; cursor: not-allowed; }
-      .notice { margin: 0; color: #47615e; font: 13px ui-monospace, monospace; line-height: 1.6; } .status { display: grid; gap: 7px; border-top: 1px solid #b9ceca; padding-top: 14px; color: #47615e; font: 12px ui-monospace, monospace; } .status strong { color: #162a2a; } .status[data-state="error"] strong { color: #bd3f2b; } .status[data-state="ready"] strong { color: #0d9273; } #game { min-height: 0; margin-top: 34px; } .hidden { display: none; }
+      .notice { margin: 0; color: #47615e; font: 13px ui-monospace, monospace; line-height: 1.6; } .status { display: grid; gap: 7px; border-top: 1px solid #b9ceca; padding-top: 14px; color: #47615e; font: 12px ui-monospace, monospace; } .status strong { color: #162a2a; } .status[data-state="error"] strong { color: #bd3f2b; } .status[data-state="ready"] strong { color: #0d9273; } #emulator-stage { position: relative; min-height: 0; margin-top: 34px; } #start-overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; min-height: 360px; background: rgba(12, 25, 25, .84); } #start-overlay button { min-width: 180px; background: #e65a3f; } #start-overlay p { margin: 12px 24px 0; color: #d7e6e1; font: 13px ui-monospace, monospace; text-align: center; } #start-overlay.hidden { display: none; } .hidden { display: none; }
       @media (max-width: 650px) { header, main { width: min(100% - 28px,960px); } .systems { grid-template-columns: repeat(2,1fr); } }
     </style>
   </head>
@@ -37,13 +37,16 @@ export const EMULATOR_PAGE = `<!doctype html>
         <div id="status" class="status" data-state="idle" role="status" aria-live="polite"><strong>Waiting for a game file</strong><span id="status-detail">EmulatorJS runs locally from this Prism deployment.</span></div>
         <p class="notice">Use only homebrew, public-domain, or game files you are legally authorized to use. No game files are included with Prism.</p>
       </section>
-      <div id="game" class="hidden"></div>
+      <div id="emulator-stage" class="hidden"><div id="game"></div><div id="start-overlay" class="hidden"><div><button id="start-game" type="button">Start game</button><p>Starts the embedded EmulatorJS player with your local file.</p></div></div></div>
     </main>
     <script>
       const rom = document.getElementById('rom');
       const system = document.getElementById('system');
       const launch = document.getElementById('launch');
       const game = document.getElementById('game');
+      const stage = document.getElementById('emulator-stage');
+      const overlay = document.getElementById('start-overlay');
+      const start = document.getElementById('start-game');
       const status = document.getElementById('status');
       const statusTitle = status.querySelector('strong');
       const statusDetail = document.getElementById('status-detail');
@@ -58,14 +61,14 @@ export const EMULATOR_PAGE = `<!doctype html>
         if (file) setStatus('ready', 'Game file selected', file.name + ' (' + Math.ceil(file.size / 1024) + ' KiB).');
       });
       addEventListener('error', event => {
-        if (game.classList.contains('hidden') || /wake lock permission/i.test(event.message || '')) return;
+        if (stage.classList.contains('hidden') || /wake lock permission/i.test(event.message || '')) return;
         fail(event.message || 'A browser error interrupted emulation.');
       });
-      addEventListener('unhandledrejection', event => { if (!game.classList.contains('hidden')) fail(event.reason || 'An emulator request failed.'); });
+      addEventListener('unhandledrejection', event => { if (!stage.classList.contains('hidden')) fail(event.reason || 'An emulator request failed.'); });
       launch.addEventListener('click', async () => {
         const file = rom.files[0]; if (!file) return;
         clearTimeout(startupTimer);
-        launch.disabled = true; game.classList.remove('hidden'); game.replaceChildren();
+        launch.disabled = true; stage.classList.remove('hidden'); overlay.classList.add('hidden'); game.replaceChildren();
         const core = cores[system.value];
         setStatus('loading', 'Checking local game file', 'Reading ' + file.name + ' before the emulator starts.');
         try {
@@ -90,9 +93,12 @@ export const EMULATOR_PAGE = `<!doctype html>
             const startButton = game.querySelector('.ejs_start_button');
             if (!startButton) return;
             observer.disconnect();
-            setStatus('ready', 'Emulator ready to start', 'Press Start Game in the embedded EmulatorJS player.');
-            startButton.addEventListener('click', () => {
+            overlay.classList.remove('hidden');
+            setStatus('ready', 'Emulator ready to start', 'Press Start game below to begin the embedded player.');
+            start.addEventListener('click', () => {
+              overlay.remove();
               setStatus('loading', 'Starting game core', 'EmulatorJS is loading the local file with ' + core + '.');
+              startButton.click();
               watchForGameDisplay();
             }, { once: true });
           });

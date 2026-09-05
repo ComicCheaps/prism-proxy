@@ -17,8 +17,9 @@ describe("local emulator", () => {
     expect(EMULATOR_PAGE).toContain("Checking emulator core");
     expect(EMULATOR_PAGE).toContain("The selected game file is empty");
     expect(EMULATOR_PAGE).toContain(".ejs_start_button");
+    expect(EMULATOR_PAGE).toContain('id="start-game"');
     expect(EMULATOR_PAGE).toContain("Emulator ready to start");
-    expect(EMULATOR_PAGE).toContain("Press Start Game in the embedded EmulatorJS player");
+    expect(EMULATOR_PAGE).toContain("Press Start game below");
     expect(EMULATOR_PAGE).toContain("Core display initialized");
     expect(EMULATOR_PAGE).toContain("Game core did not start");
     expect(EMULATOR_PAGE).not.toContain("loader.onload = () => URL.revokeObjectURL");
